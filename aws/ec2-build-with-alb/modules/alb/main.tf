@@ -53,8 +53,17 @@ resource "aws_lb_target_group_attachment" "stds_target_grp_attach" {
 resource "aws_lb_listener" "stds_alb_listener" {
   load_balancer_arn = aws_lb.stds_alb.arn
   port              = var.alb_listener_port
-  protocol          = var.alb_listener_protocol
-  certificate_arn   = var.acm_certificate_arn
+  protocol          = var.alb_listener_port == 443 ? "HTTPS" : "HTTP"
+
+  dynamic "default_action" {
+    for_each = var.alb_listener_port == 443 ? [1] : []
+    content {
+      type             = "forward"
+      target_group_arn = aws_lb_target_group.stds_alb_target_group.arn
+    }
+  }
+
+  certificate_arn = var.alb_listener_port == 443 ? var.acm_certificate_arn : null
 
   tags = {
     "Application" = var.application
